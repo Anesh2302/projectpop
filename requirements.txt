@@ -1,0 +1,4 @@
+# projectpop - core has no external deps (stdlib only)
+# Optional extras:
+# pyotp          - for TOTP QR codes (pip install pyotp qrcode)
+# psutil         - for battery/system stats
