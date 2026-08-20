@@ -83,6 +83,7 @@ class BlockedIP(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
+    firewall_applied = db.Column(db.Boolean, default=False)
 
     blocker = db.relationship("User", backref="blocked_ips")
 

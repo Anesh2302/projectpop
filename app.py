@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Website, Scan, BlockedIP, Alert, AuditLog
 from scanner import scan_website
+from network import block_ip_firewall, unblock_ip_firewall, get_network_info, is_admin
 from config import Config
 import json
 import pyotp
@@ -210,6 +211,7 @@ def create_app():
     @app.route("/ip-blocker", methods=["GET", "POST"])
     @login_required
     def ip_blocker():
+        net_info = get_network_info()
         if request.method == "POST":
             ip = request.form.get("ip", "").strip()
             reason = request.form.get("reason", "").strip()
@@ -218,22 +220,33 @@ def create_app():
                 if existing:
                     flash("IP already blocked", "warning")
                 else:
-                    block = BlockedIP(ip_address=ip, reason=reason, blocked_by=current_user.id)
+                    fw_ok, fw_msg = block_ip_firewall(ip, reason)
+                    block = BlockedIP(
+                        ip_address=ip, reason=reason, blocked_by=current_user.id,
+                        firewall_applied=fw_ok,
+                    )
                     db.session.add(block)
                     db.session.commit()
                     log_action("ip_blocked", ip, reason)
-                    flash(f"Blocked {ip}", "success")
+                    if fw_ok:
+                        flash(f"Blocked {ip} on network firewall", "success")
+                    else:
+                        flash(f"Added to blocklist. Firewall: {fw_msg}", "warning")
         blocked = BlockedIP.query.filter_by(is_active=True).order_by(BlockedIP.created_at.desc()).all()
-        return render_template("ip_blocker.html", blocked_ips=blocked)
+        return render_template("ip_blocker.html", blocked_ips=blocked, net_info=net_info)
 
     @app.route("/unblock/<int:block_id>", methods=["POST"])
     @login_required
     def unblock(block_id):
         block = BlockedIP.query.get_or_404(block_id)
+        fw_ok, fw_msg = unblock_ip_firewall(block.ip_address)
         block.is_active = False
         db.session.commit()
         log_action("ip_unblocked", block.ip_address)
-        flash(f"Unblocked {block.ip_address}", "success")
+        if fw_ok:
+            flash(f"Unblocked {block.ip_address} from network firewall", "success")
+        else:
+            flash(f"Removed from blocklist. Firewall: {fw_msg}", "warning")
         return redirect(url_for("ip_blocker"))
 
     @app.route("/alerts")

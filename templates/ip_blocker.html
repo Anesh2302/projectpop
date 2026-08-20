@@ -43,23 +43,35 @@ td{padding:10px 18px;font-size:.8rem;border-bottom:1px solid rgba(30,41,59,.5)}
   </div>
   <div class="main-content">
     <h1 style="font-size:1.3rem;font-weight:800">🚫 IP Blocker</h1>
-    <p style="font-size:.75rem;color:var(--muted);margin-top:4px">Block unauthorized IP addresses</p>
+    <p style="font-size:.75rem;color:var(--muted);margin-top:4px">Block unauthorized IP addresses on the network firewall</p>
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for cat, msg in messages %}<div class="flash flash-{{cat}}" style="margin-top:12px">{{msg}}</div>{% endfor %}
     {% endwith %}
-    <form method="POST" style="display:flex;gap:10px;margin-top:16px">
-      <input type="text" name="ip" placeholder="IP Address (e.g. 192.168.1.1)" required style="flex:1">
+    {% if net_info %}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-top:12px;display:flex;gap:20px;align-items:center;font-size:.75rem">
+      <span style="color:var(--muted)">Network:</span>
+      <span style="font-family:'JetBrains Mono',monospace;color:var(--accent)">{{net_info.local_ip or 'Unknown'}}</span>
+      <span style="color:var(--muted)">|</span>
+      <span style="color:var(--muted)">Platform:</span>
+      <span style="font-weight:600">{{net_info.platform|title}}</span>
+      <span style="color:var(--muted)">|</span>
+      <span>Admin: {% if net_info.is_admin %}<span style="color:var(--green)">Yes ✓</span>{% else %}<span style="color:var(--gold)">No (firewall needs admin)</span>{% endif %}</span>
+    </div>
+    {% endif %}
+    <form method="POST" style="display:flex;gap:10px;margin-top:14px">
+      <input type="text" name="ip" placeholder="IP Address (e.g. 192.168.1.100)" required style="flex:1">
       <input type="text" name="reason" placeholder="Reason (optional)" style="flex:1">
       <button type="submit" class="btn btn-red">🚫 Block IP</button>
     </form>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>IP Address</th><th>Reason</th><th>Blocked By</th><th>Date</th><th>Action</th></tr></thead>
+        <thead><tr><th>IP Address</th><th>Reason</th><th>Firewall</th><th>Blocked By</th><th>Date</th><th>Action</th></tr></thead>
         <tbody>
         {% for b in blocked_ips %}
         <tr>
           <td style="font-family:'JetBrains Mono',monospace;font-weight:600">{{b.ip_address}}</td>
           <td style="color:var(--muted)">{{b.reason or 'No reason given'}}</td>
+          <td>{% if b.firewall_applied %}<span class="badge badge-active">Active</span>{% else %}<span class="badge badge-medium">DB Only</span>{% endif %}</td>
           <td>{{b.blocker.name if b.blocker else 'Unknown'}}</td>
           <td style="font-size:.7rem;color:var(--muted)">{{b.created_at.strftime('%b %d, %H:%M')}}</td>
           <td>
@@ -70,7 +82,7 @@ td{padding:10px 18px;font-size:.8rem;border-bottom:1px solid rgba(30,41,59,.5)}
         </tr>
         {% endfor %}
         {% if not blocked_ips %}
-        <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">No blocked IPs</td></tr>
+        <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">No blocked IPs</td></tr>
         {% endif %}
         </tbody>
       </table>
