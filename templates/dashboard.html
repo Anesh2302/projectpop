@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block head %}
+<style>
+  .app{display:flex;min-height:100vh}
+  .sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;height:100vh;z-index:10}
+  .sidebar-header{padding:20px;border-bottom:1px solid var(--border)}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--green),var(--accent));display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;color:#000}
+  .logo-text h1{font-size:.95rem;font-weight:700}
+  .logo-text span{font-size:.65rem;color:var(--green);text-transform:uppercase;letter-spacing:2px}
+  .sidebar-nav{flex:1;padding:10px;overflow-y:auto}
+  .nav-section{font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding:12px 14px 6px;font-weight:600}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;cursor:pointer;transition:all .15s;color:var(--muted);font-size:.8rem;margin-bottom:1px;text-decoration:none}
+  .nav-item:hover,.nav-item.active{background:rgba(0,212,255,.08);color:var(--accent)}
+  .nav-item .icon{width:18px;text-align:center}
+  .sidebar-footer{padding:14px;border-top:1px solid var(--border);font-size:.65rem;color:var(--muted)}
+  .main-content{margin-left:260px;flex:1;padding:24px}
+  .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:16px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden}
+  .stat-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;border-radius:0 2px 2px 0}
+  .stat-card.blue::before{background:var(--accent)}.stat-card.green::before{background:var(--green)}.stat-card.red::before{background:var(--red)}.stat-card.gold::before{background:var(--gold)}.stat-card.purple::before{background:var(--purple)}
+  .stat-label{font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600}
+  .stat-value{font-size:1.8rem;font-weight:800;margin-top:4px;font-family:'JetBrains Mono',monospace}
+  .stat-card.blue .stat-value{color:var(--accent)}.stat-card.green .stat-value{color:var(--green)}.stat-card.red .stat-value{color:var(--red)}.stat-card.gold .stat-value{color:var(--gold)}.stat-card.purple .stat-value{color:var(--purple)}
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:16px}
+  .table-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .table-header h3{font-size:.85rem;font-weight:600}
+  table{width:100%;border-collapse:collapse}
+  th{padding:10px 18px;text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
+  td{padding:10px 18px;font-size:.8rem;border-bottom:1px solid rgba(30,41,59,.5)}
+  tr:hover td{background:rgba(0,212,255,.02)}
+  .badge{padding:3px 8px;border-radius:6px;font-size:.65rem;font-weight:600;text-transform:uppercase;display:inline-block}
+  .badge-critical{background:rgba(239,68,68,.15);color:var(--red)}.badge-high{background:rgba(249,115,22,.15);color:var(--orange)}.badge-medium{background:rgba(245,158,11,.15);color:var(--gold)}.badge-low{background:rgba(34,197,94,.15);color:var(--green)}.badge-info{background:rgba(0,212,255,.15);color:var(--accent)}
+</style>
+{% endblock %}
+{% block body %}
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">PP</div>
+        <div class="logo-text"><h1>ProjectPop</h1><span>Security Platform</span></div>
+      </div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <a href="{{url_for('dashboard')}}" class="nav-item active"><span class="icon">📊</span> Dashboard</a>
+      <a href="{{url_for('scanner')}}" class="nav-item"><span class="icon">🔍</span> Website Scanner</a>
+      <a href="{{url_for('ip_blocker')}}" class="nav-item"><span class="icon">🚫</span> IP Blocker</a>
+      <div class="nav-section">Security</div>
+      <a href="{{url_for('alerts')}}" class="nav-item"><span class="icon">🔔</span> Alerts {% if stats.alerts > 0 %}<span style="margin-left:auto;background:var(--red);color:#fff;font-size:.6rem;padding:2px 6px;border-radius:10px;font-weight:600">{{stats.alerts}}</span>{% endif %}</a>
+      <a href="{{url_for('reports')}}" class="nav-item"><span class="icon">📄</span> Reports</a>
+      <div class="nav-section">Account</div>
+      <a href="{{url_for('config_page')}}" class="nav-item"><span class="icon">⚙️</span> Config</a>
+      {% if current_user.role == 'admin' %}
+      <a href="{{url_for('admin_panel')}}" class="nav-item"><span class="icon">🛡️</span> Admin</a>
+      {% endif %}
+      <a href="{{url_for('logout')}}" class="nav-item"><span class="icon">🚪</span> Logout</a>
+    </div>
+    <div class="sidebar-footer">
+      <div>ProjectPop v2.0</div>
+      <div>Signed in as <strong>{{current_user.name}}</strong></div>
+    </div>
+  </div>
+  <div class="main-content">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <h1 style="font-size:1.3rem;font-weight:800">Dashboard</h1>
+        <p style="font-size:.75rem;color:var(--muted);margin-top:2px">Welcome back, {{current_user.name}}</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:.7rem;color:var(--green);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span> System Online</span>
+      </div>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="flash flash-{{cat}}" style="margin-top:12px">{{msg}}</div>
+      {% endfor %}
+    {% endwith %}
+    <div class="dash-grid">
+      <div class="stat-card blue"><div class="stat-label">Websites Monitored</div><div class="stat-value">{{stats.websites}}</div></div>
+      <div class="stat-card green"><div class="stat-label">Total Scans</div><div class="stat-value">{{stats.scans}}</div></div>
+      <div class="stat-card gold"><div class="stat-label">Avg Security Score</div><div class="stat-value">{{stats.avg_score}}%</div></div>
+      <div class="stat-card red"><div class="stat-label">Blocked IPs</div><div class="stat-value">{{stats.blocked_ips}}</div></div>
+      <div class="stat-card purple"><div class="stat-label">Active Alerts</div><div class="stat-value">{{stats.alerts}}</div></div>
+    </div>
+    {% if recent_scans %}
+    <div class="table-wrap">
+      <div class="table-header"><h3>Recent Scans</h3><a href="{{url_for('scanner')}}" class="btn btn-sm btn-accent">New Scan</a></div>
+      <table>
+        <thead><tr><th>URL</th><th>Score</th><th>SSL</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+        {% for s in recent_scans %}
+        <tr>
+          <td><a href="{{url_for('scan_detail', scan_id=s.id)}}">{{s.url[:50]}}</a></td>
+          <td><span class="badge {% if s.score >= 80 %}badge-low{% elif s.score >= 50 %}badge-medium{% else %}badge-critical{% endif %}">{{s.score}}%</span></td>
+          <td>{% if s.ssl_valid %}<span class="badge badge-low">Valid</span>{% else %}<span class="badge badge-critical">Invalid</span>{% endif %}</td>
+          <td><span class="badge badge-info">{{s.status_code}}</span></td>
+          <td style="font-size:.7rem;color:var(--muted)">{{s.created_at.strftime('%b %d, %H:%M')}}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;text-align:center;margin-top:20px">
+      <p style="font-size:.9rem;color:var(--muted);margin-bottom:16px">No scans yet. Start by scanning your first website.</p>
+      <a href="{{url_for('scanner')}}" class="btn btn-green">Scan a Website</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

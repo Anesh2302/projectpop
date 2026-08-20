@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Configuration{% endblock %}
+{% block head %}
+<style>
+.app{display:flex;min-height:100vh}
+.sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;height:100vh;z-index:10}
+.sidebar-header{padding:20px;border-bottom:1px solid var(--border)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--green),var(--accent));display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;color:#000}
+.logo-text h1{font-size:.95rem;font-weight:700}.logo-text span{font-size:.65rem;color:var(--green);text-transform:uppercase;letter-spacing:2px}
+.sidebar-nav{flex:1;padding:10px}.nav-section{font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding:12px 14px 6px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;transition:all .15s;color:var(--muted);font-size:.8rem;margin-bottom:1px;text-decoration:none}
+.nav-item:hover,.nav-item.active{background:rgba(0,212,255,.08);color:var(--accent)}
+.nav-item .icon{width:18px;text-align:center}
+.sidebar-footer{padding:14px;border-top:1px solid var(--border);font-size:.65rem;color:var(--muted)}
+.main-content{margin-left:260px;flex:1;padding:24px}
+.config-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px}
+.config-section h3{font-size:.85rem;font-weight:700;margin-bottom:14px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;margin-bottom:6px}
+input,select{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.8rem;font-family:'Inter',sans-serif;outline:none;width:100%}
+input:focus{border-color:var(--accent)}
+</style>
+{% endblock %}
+{% block body %}
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-header"><div class="logo"><div class="logo-icon">PP</div><div class="logo-text"><h1>ProjectPop</h1><span>Security Platform</span></div></div></div>
+    <div class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <a href="{{url_for('dashboard')}}" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+      <a href="{{url_for('scanner')}}" class="nav-item"><span class="icon">🔍</span> Scanner</a>
+      <a href="{{url_for('ip_blocker')}}" class="nav-item"><span class="icon">🚫</span> IP Blocker</a>
+      <div class="nav-section">Security</div>
+      <a href="{{url_for('alerts')}}" class="nav-item"><span class="icon">🔔</span> Alerts</a>
+      <a href="{{url_for('reports')}}" class="nav-item"><span class="icon">📄</span> Reports</a>
+      <div class="nav-section">Account</div>
+      <a href="{{url_for('config_page')}}" class="nav-item active"><span class="icon">⚙️</span> Config</a>
+      {% if current_user.role == 'admin' %}<a href="{{url_for('admin_panel')}}" class="nav-item"><span class="icon">🛡️</span> Admin</a>{% endif %}
+      <a href="{{url_for('logout')}}" class="nav-item"><span class="icon">🚪</span> Logout</a>
+    </div>
+    <div class="sidebar-footer">ProjectPop v2.0 — {{current_user.name}}</div>
+  </div>
+  <div class="main-content">
+    <h1 style="font-size:1.3rem;font-weight:800">⚙️ Configuration</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}<div class="flash flash-{{cat}}" style="margin-top:12px">{{msg}}</div>{% endfor %}
+    {% endwith %}
+    <div class="config-section">
+      <h3>🔐 Two-Factor Authentication</h3>
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">
+        Status: {% if current_user.otp_enabled %}<span style="color:var(--green);font-weight:600">Enabled ✓</span>{% else %}<span style="color:var(--red);font-weight:600">Disabled</span>{% endif %}
+      </p>
+      {% if not current_user.otp_enabled %}
+      <a href="{{url_for('setup_2fa')}}" class="btn btn-green">Enable 2FA</a>
+      {% else %}
+      <p style="font-size:.75rem;color:var(--green)">Your account is protected with 2FA.</p>
+      {% endif %}
+    </div>
+    <div class="config-section">
+      <h3>👤 Account</h3>
+      <p style="font-size:.78rem;color:var(--muted)">Name: <strong>{{current_user.name}}</strong></p>
+      <p style="font-size:.78rem;color:var(--muted)">Email: <strong>{{current_user.email}}</strong></p>
+      <p style="font-size:.78rem;color:var(--muted)">Role: <strong>{{current_user.role}}</strong></p>
+    </div>
+    <div class="config-section">
+      <h3>📡 Scanner Settings</h3>
+      <div class="form-group">
+        <label>Scan Depth</label>
+        <select style="padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.8rem;width:100%">
+          <option>Full (SSL + Headers + Ports + Tech Detection)</option>
+          <option>Quick (SSL + Headers only)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Port Scan Range</label>
+        <input type="text" value="21,22,25,53,80,443,3306,5432,6379,8080,8443,27017" style="font-family:'JetBrains Mono',monospace;font-size:.7rem">
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

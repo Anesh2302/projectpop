@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block body %}
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="width:100%;max-width:400px">
+    <div style="text-align:center;margin-bottom:30px">
+      <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--green),var(--accent));display:inline-flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;color:#000;margin-bottom:12px">PP</div>
+      <h1 style="font-size:1.4rem;font-weight:800">ProjectPop</h1>
+      <p style="font-size:.75rem;color:var(--muted);margin-top:4px">Security Analysis Platform</p>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="flash flash-{{cat}}">{{msg}}</div>
+      {% endfor %}
+    {% endwith %}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px">
+      <h2 style="font-size:1rem;font-weight:700;margin-bottom:20px">Sign In</h2>
+      <form method="POST">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" name="password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-green" style="width:100%;padding:12px;margin-top:8px">Sign In</button>
+      </form>
+      <p style="text-align:center;margin-top:16px;font-size:.75rem;color:var(--muted)">
+        Don't have an account? <a href="{{url_for('signup')}}">Sign Up</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

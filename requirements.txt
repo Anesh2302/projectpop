@@ -1,4 +1,6 @@
-# projectpop - core has no external deps (stdlib only)
-# Optional extras:
-# pyotp          - for TOTP QR codes (pip install pyotp qrcode)
-# psutil         - for battery/system stats
+flask>=3.0
+flask-login>=0.6
+flask-sqlalchemy>=3.0
+pyotp>=2.8
+qrcode[pil]>=7.4
+gunicorn>=21.2

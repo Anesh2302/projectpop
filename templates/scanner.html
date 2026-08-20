@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Website Scanner{% endblock %}
+{% block head %}
+<style>
+  .app{display:flex;min-height:100vh}
+  .sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;height:100vh;z-index:10}
+  .sidebar-header{padding:20px;border-bottom:1px solid var(--border)}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--green),var(--accent));display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;color:#000}
+  .logo-text h1{font-size:.95rem;font-weight:700}
+  .logo-text span{font-size:.65rem;color:var(--green);text-transform:uppercase;letter-spacing:2px}
+  .sidebar-nav{flex:1;padding:10px;overflow-y:auto}
+  .nav-section{font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding:12px 14px 6px;font-weight:600}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;cursor:pointer;transition:all .15s;color:var(--muted);font-size:.8rem;margin-bottom:1px;text-decoration:none}
+  .nav-item:hover,.nav-item.active{background:rgba(0,212,255,.08);color:var(--accent)}
+  .nav-item .icon{width:18px;text-align:center}
+  .sidebar-footer{padding:14px;border-top:1px solid var(--border);font-size:.65rem;color:var(--muted)}
+  .main-content{margin-left:260px;flex:1;padding:24px}
+  .scan-input{display:flex;gap:10px;margin-top:16px}
+  .scan-input input{flex:1;padding:14px 18px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.9rem;outline:none}
+  .scan-input input:focus{border-color:var(--accent)}
+  .result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:20px}
+  .result-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+  .result-card h3{font-size:.85rem;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .result-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(30,41,59,.3);font-size:.8rem}
+  .result-row:last-child{border:none}
+  .result-label{color:var(--muted)}.result-val{font-weight:600;font-family:'JetBrains Mono',monospace}
+  .score-circle{width:100px;height:100px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;font-family:'JetBrains Mono',monospace;margin:0 auto 16px}
+  .issue-item{padding:8px 12px;border-radius:8px;margin-bottom:6px;font-size:.78rem;display:flex;align-items:center;gap:8px}
+  .issue-critical{background:rgba(239,68,68,.1);border-left:3px solid var(--red)}
+  .issue-high{background:rgba(249,115,22,.1);border-left:3px solid var(--orange)}
+  .issue-medium{background:rgba(245,158,11,.1);border-left:3px solid var(--gold)}
+  .issue-low{background:rgba(34,197,94,.1);border-left:3px solid var(--green)}
+</style>
+{% endblock %}
+{% block body %}
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-header"><div class="logo"><div class="logo-icon">PP</div><div class="logo-text"><h1>ProjectPop</h1><span>Security Platform</span></div></div></div>
+    <div class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <a href="{{url_for('dashboard')}}" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+      <a href="{{url_for('scanner')}}" class="nav-item active"><span class="icon">🔍</span> Website Scanner</a>
+      <a href="{{url_for('ip_blocker')}}" class="nav-item"><span class="icon">🚫</span> IP Blocker</a>
+      <div class="nav-section">Security</div>
+      <a href="{{url_for('alerts')}}" class="nav-item"><span class="icon">🔔</span> Alerts</a>
+      <a href="{{url_for('reports')}}" class="nav-item"><span class="icon">📄</span> Reports</a>
+      <div class="nav-section">Account</div>
+      <a href="{{url_for('config_page')}}" class="nav-item"><span class="icon">⚙️</span> Config</a>
+      {% if current_user.role == 'admin' %}<a href="{{url_for('admin_panel')}}" class="nav-item"><span class="icon">🛡️</span> Admin</a>{% endif %}
+      <a href="{{url_for('logout')}}" class="nav-item"><span class="icon">🚪</span> Logout</a>
+    </div>
+    <div class="sidebar-footer">ProjectPop v2.0 — {{current_user.name}}</div>
+  </div>
+  <div class="main-content">
+    <h1 style="font-size:1.3rem;font-weight:800">🔍 Website Scanner</h1>
+    <p style="font-size:.75rem;color:var(--muted);margin-top:4px">Enter a website URL to perform a full security analysis</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}<div class="flash flash-{{cat}}" style="margin-top:12px">{{msg}}</div>{% endfor %}
+    {% endwith %}
+    <form method="POST">
+      <div class="scan-input">
+        <input type="text" name="url" placeholder="https://example.com" value="{{url_input}}" required>
+        <button type="submit" class="btn btn-green" id="scanBtn">🔍 Scan Now</button>
+      </div>
+    </form>
+    {% if result %}
+    <div style="margin-top:24px">
+      <div style="text-align:center;margin-bottom:20px">
+        {% set sc = result.score %}
+        <div class="score-circle" style="{% if sc >= 80 %}background:rgba(34,197,94,.15);color:var(--green);border:3px solid var(--green){% elif sc >= 50 %}background:rgba(245,158,11,.15);color:var(--gold);border:3px solid var(--gold){% else %}background:rgba(239,68,68,.15);color:var(--red);border:3px solid var(--red){% endif %}">{{sc}}</div>
+        <h2 style="font-size:1.1rem;font-weight:700">Security Score</h2>
+        <p style="font-size:.75rem;color:var(--muted)">Scanned {{result.url}}</p>
+      </div>
+      <div class="result-grid">
+        <div class="result-card">
+          <h3>🔒 SSL Certificate</h3>
+          <div class="result-row"><span class="result-label">Status</span><span class="result-val">{% if result.ssl_valid %}<span style="color:var(--green)">✓ Valid</span>{% else %}<span style="color:var(--red)">✗ Invalid</span>{% endif %}</span></div>
+          <div class="result-row"><span class="result-label">Issuer</span><span class="result-val">{{result.ssl_issuer or 'N/A'}}</span></div>
+          <div class="result-row"><span class="result-label">Protocol</span><span class="result-val">{{result.ssl_protocol or 'N/A'}}</span></div>
+          <div class="result-row"><span class="result-label">Expiry</span><span class="result-val">{{result.ssl_expiry or 'N/A'}}</span></div>
+        </div>
+        <div class="result-card">
+          <h3>🌐 Connection</h3>
+          <div class="result-row"><span class="result-label">Status Code</span><span class="result-val">{{result.status_code}}</span></div>
+          <div class="result-row"><span class="result-label">Response Time</span><span class="result-val">{{result.response_time}}ms</span></div>
+          <div class="result-row"><span class="result-label">Server</span><span class="result-val">{{result.server_header or 'Hidden'}}</span></div>
+          <div class="result-row"><span class="result-label">DNS Resolved</span><span class="result-val">{% if result.dns_resolved %}<span style="color:var(--green)">Yes</span>{% else %}<span style="color:var(--red)">No</span>{% endif %}</span></div>
+          {% if result.dns_ips %}<div class="result-row"><span class="result-label">IP Addresses</span><span class="result-val" style="font-size:.7rem">{{result.dns_ips|join(', ')}}</span></div>{% endif %}
+        </div>
+        <div class="result-card">
+          <h3>🛠 Technologies</h3>
+          {% if result.technologies %}
+            {% for t in result.technologies %}
+            <span style="display:inline-block;padding:4px 10px;border-radius:6px;font-size:.7rem;font-weight:600;margin:3px;background:rgba(0,212,255,.1);color:var(--accent)">{{t}}</span>
+            {% endfor %}
+          {% else %}
+            <p style="font-size:.78rem;color:var(--muted)">No technologies detected</p>
+          {% endif %}
+        </div>
+        <div class="result-card">
+          <h3>🔌 Open Ports</h3>
+          {% if result.open_ports %}
+            {% for p in result.open_ports %}
+            <span style="display:inline-block;padding:4px 10px;border-radius:6px;font-size:.7rem;font-weight:600;margin:3px;background:rgba(239,68,68,.1);color:var(--red)">:{{p}}</span>
+            {% endfor %}
+          {% else %}
+            <p style="font-size:.78rem;color:var(--muted)">No open ports detected</p>
+          {% endif %}
+        </div>
+      </div>
+      <div class="result-card" style="margin-top:16px">
+        <h3>🚨 Security Issues ({{result.issues|length}})</h3>
+        {% if result.issues %}
+          {% for issue in result.issues %}
+          <div class="issue-item issue-{{issue.severity}}">
+            <span class="badge badge-{{issue.severity}}">{{issue.severity}}</span>
+            {{issue.message}}
+          </div>
+          {% endfor %}
+        {% else %}
+          <p style="font-size:.78rem;color:var(--green)">No security issues found! 🎉</p>
+        {% endif %}
+      </div>
+      <div class="result-card" style="margin-top:16px">
+        <h3>📋 Security Headers</h3>
+        {% if result.security_headers %}
+          {% for hdr, val in result.security_headers.items() %}
+          <div class="result-row"><span class="result-label">{{hdr}}</span><span class="result-val" style="font-size:.7rem;max-width:60%;text-align:right;word-break:break-all">{{val[:80]}}</span></div>
+          {% endfor %}
+        {% endif %}
+        {% if result.missing_headers %}
+        <p style="font-size:.75rem;color:var(--gold);margin-top:10px;font-weight:600">Missing Headers:</p>
+        {% for hdr in result.missing_headers %}
+        <div class="result-row"><span class="result-label" style="color:var(--red)">{{hdr}}</span><span class="result-val" style="color:var(--red);font-size:.7rem">✗ Missing</span></div>
+        {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

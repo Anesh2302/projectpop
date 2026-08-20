@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel{% endblock %}
+{% block head %}
+<style>
+.app{display:flex;min-height:100vh}
+.sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;height:100vh;z-index:10}
+.sidebar-header{padding:20px;border-bottom:1px solid var(--border)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--green),var(--accent));display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;color:#000}
+.logo-text h1{font-size:.95rem;font-weight:700}.logo-text span{font-size:.65rem;color:var(--green);text-transform:uppercase;letter-spacing:2px}
+.sidebar-nav{flex:1;padding:10px}.nav-section{font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding:12px 14px 6px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;transition:all .15s;color:var(--muted);font-size:.8rem;margin-bottom:1px;text-decoration:none}
+.nav-item:hover,.nav-item.active{background:rgba(0,212,255,.08);color:var(--accent)}
+.nav-item .icon{width:18px;text-align:center}
+.sidebar-footer{padding:14px;border-top:1px solid var(--border);font-size:.65rem;color:var(--muted)}
+.main-content{margin-left:260px;flex:1;padding:24px}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:16px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.stat-label{font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600}
+.stat-value{font-size:1.5rem;font-weight:800;margin-top:4px;font-family:'JetBrains Mono',monospace;color:var(--accent)}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:16px}
+.table-header{padding:14px 18px;border-bottom:1px solid var(--border)}
+.table-header h3{font-size:.85rem;font-weight:600}
+table{width:100%;border-collapse:collapse}
+th{padding:10px 18px;text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
+td{padding:10px 18px;font-size:.8rem;border-bottom:1px solid rgba(30,41,59,.5)}
+.badge{padding:3px 8px;border-radius:6px;font-size:.65rem;font-weight:600;text-transform:uppercase;display:inline-block}
+.badge-admin{background:rgba(168,85,247,.15);color:var(--purple)}.badge-user{background:rgba(0,212,255,.15);color:var(--accent)}
+</style>
+{% endblock %}
+{% block body %}
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-header"><div class="logo"><div class="logo-icon">PP</div><div class="logo-text"><h1>ProjectPop</h1><span>Admin Panel</span></div></div></div>
+    <div class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <a href="{{url_for('dashboard')}}" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+      <a href="{{url_for('scanner')}}" class="nav-item"><span class="icon">🔍</span> Scanner</a>
+      <a href="{{url_for('ip_blocker')}}" class="nav-item"><span class="icon">🚫</span> IP Blocker</a>
+      <div class="nav-section">Admin</div>
+      <a href="{{url_for('admin_panel')}}" class="nav-item active"><span class="icon">🛡️</span> Admin Panel</a>
+      <div class="nav-section">Account</div>
+      <a href="{{url_for('logout')}}" class="nav-item"><span class="icon">🚪</span> Logout</a>
+    </div>
+    <div class="sidebar-footer">Admin — {{current_user.name}}</div>
+  </div>
+  <div class="main-content">
+    <h1 style="font-size:1.3rem;font-weight:800">🛡️ Admin Panel</h1>
+    <div class="dash-grid">
+      <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value">{{stats.total_users}}</div></div>
+      <div class="stat-card"><div class="stat-label">Total Scans</div><div class="stat-value">{{stats.total_scans}}</div></div>
+      <div class="stat-card"><div class="stat-label">Websites</div><div class="stat-value">{{stats.total_websites}}</div></div>
+      <div class="stat-card"><div class="stat-label">Blocked IPs</div><div class="stat-value">{{stats.blocked_ips}}</div></div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header"><h3>Users</h3></div>
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Action</th></tr></thead>
+        <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{u.name}}</td>
+          <td style="color:var(--muted)">{{u.email}}</td>
+          <td><span class="badge badge-{{u.role}}">{{u.role}}</span></td>
+          <td style="font-size:.7rem;color:var(--muted)">{{u.created_at.strftime('%b %d, %Y')}}</td>
+          <td>
+            {% if u.id != current_user.id %}
+            <form method="POST" action="{{url_for('change_role', user_id=u.id)}}" style="display:inline">
+              <select name="role" onchange="this.form.submit()" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.7rem">
+                <option value="user" {% if u.role=='user' %}selected{% endif %}>User</option>
+                <option value="admin" {% if u.role=='admin' %}selected{% endif %}>Admin</option>
+              </select>
+            </form>
+            {% else %}<span style="font-size:.65rem;color:var(--muted)">You</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header"><h3>Audit Log</h3></div>
+      <table>
+        <thead><tr><th>User</th><th>Action</th><th>Target</th><th>IP</th><th>Time</th></tr></thead>
+        <tbody>
+        {% for a in audit %}
+        <tr>
+          <td>{{a.user.name if a.user else 'System'}}</td>
+          <td style="font-weight:600">{{a.action}}</td>
+          <td style="color:var(--muted)">{{a.target or '-'}}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:.7rem">{{a.ip_address or '-'}}</td>
+          <td style="font-size:.7rem;color:var(--muted)">{{a.created_at.strftime('%b %d %H:%M')}}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
