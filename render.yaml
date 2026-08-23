@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: projectpop
+    runtime: python
+    repo: https://github.com/Anesh2302/projectpop
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:app --workers 2 --bind 0.0.0.0:$PORT --timeout 120
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:///projectpop.db

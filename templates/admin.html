@@ -15,17 +15,38 @@
 .sidebar-footer{padding:14px;border-top:1px solid var(--border);font-size:.65rem;color:var(--muted)}
 .main-content{margin-left:260px;flex:1;padding:24px}
 .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:16px}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;border-radius:0 2px 2px 0}
+.stat-card.blue::before{background:var(--accent)}.stat-card.green::before{background:var(--green)}.stat-card.red::before{background:var(--red)}.stat-card.gold::before{background:var(--gold)}.stat-card.purple::before{background:var(--purple)}
 .stat-label{font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600}
-.stat-value{font-size:1.5rem;font-weight:800;margin-top:4px;font-family:'JetBrains Mono',monospace;color:var(--accent)}
+.stat-value{font-size:1.5rem;font-weight:800;margin-top:4px;font-family:'JetBrains Mono',monospace}
+.stat-card.blue .stat-value{color:var(--accent)}.stat-card.green .stat-value{color:var(--green)}.stat-card.red .stat-value{color:var(--red)}.stat-card.gold .stat-value{color:var(--gold)}.stat-card.purple .stat-value{color:var(--purple)}
 .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:16px}
-.table-header{padding:14px 18px;border-bottom:1px solid var(--border)}
+.table-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .table-header h3{font-size:.85rem;font-weight:600}
 table{width:100%;border-collapse:collapse}
 th{padding:10px 18px;text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
 td{padding:10px 18px;font-size:.8rem;border-bottom:1px solid rgba(30,41,59,.5)}
+tr:hover td{background:rgba(0,212,255,.02)}
 .badge{padding:3px 8px;border-radius:6px;font-size:.65rem;font-weight:600;text-transform:uppercase;display:inline-block}
 .badge-admin{background:rgba(168,85,247,.15);color:var(--purple)}.badge-user{background:rgba(0,212,255,.15);color:var(--accent)}
+.badge-critical{background:rgba(239,68,68,.15);color:var(--red)}.badge-high{background:rgba(249,115,22,.15);color:var(--orange)}.badge-medium{background:rgba(245,158,11,.15);color:var(--gold)}.badge-low{background:rgba(34,197,94,.15);color:var(--green)}.badge-info{background:rgba(0,212,255,.15);color:var(--accent)}
+.tab-bar{display:flex;gap:4px;margin-top:16px;border-bottom:1px solid var(--border);padding-bottom:0}
+.tab-btn{padding:10px 18px;border:none;background:transparent;color:var(--muted);font-size:.8rem;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-family:'Inter',sans-serif}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-btn:hover{color:var(--text)}
+.tab-panel{display:none;margin-top:16px}.tab-panel.active{display:block}
+.chart-bar{display:flex;align-items:end;gap:8px;height:120px;padding:10px 0}
+.chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.chart-bar-fill{width:100%;border-radius:4px 4px 0 0;transition:height .3s}
+.chart-label{font-size:.6rem;color:var(--muted);text-align:center}
+.chart-value{font-size:.7rem;font-weight:700;font-family:'JetBrains Mono',monospace}
+.donut{width:120px;height:120px;border-radius:50%;margin:0 auto}
+.domain-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px}
+.domain-card-header{display:flex;justify-content:space-between;align-items:center}
+.domain-name{font-weight:700;font-size:.85rem}
+.domain-meta{font-size:.7rem;color:var(--muted);margin-top:4px}
+.score-pill{padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;font-family:'JetBrains Mono',monospace}
 </style>
 {% endblock %}
 {% block body %}
@@ -45,56 +66,191 @@ td{padding:10px 18px;font-size:.8rem;border-bottom:1px solid rgba(30,41,59,.5)}
     <div class="sidebar-footer">Admin — {{current_user.name}}</div>
   </div>
   <div class="main-content">
-    <h1 style="font-size:1.3rem;font-weight:800">🛡️ Admin Panel</h1>
+    <h1 style="font-size:1.3rem;font-weight:800">Admin Panel</h1>
+    <p style="font-size:.75rem;color:var(--muted);margin-top:2px">System overview and domain analytics</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}<div class="flash flash-{{cat}}" style="margin-top:12px">{{msg}}</div>{% endfor %}
+    {% endwith %}
+
     <div class="dash-grid">
-      <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value">{{stats.total_users}}</div></div>
-      <div class="stat-card"><div class="stat-label">Total Scans</div><div class="stat-value">{{stats.total_scans}}</div></div>
-      <div class="stat-card"><div class="stat-label">Websites</div><div class="stat-value">{{stats.total_websites}}</div></div>
-      <div class="stat-card"><div class="stat-label">Blocked IPs</div><div class="stat-value">{{stats.blocked_ips}}</div></div>
+      <div class="stat-card blue"><div class="stat-label">Total Users</div><div class="stat-value">{{stats.total_users}}</div></div>
+      <div class="stat-card green"><div class="stat-label">Total Scans</div><div class="stat-value">{{stats.total_scans}}</div></div>
+      <div class="stat-card gold"><div class="stat-label">Websites Monitored</div><div class="stat-value">{{stats.total_websites}}</div></div>
+      <div class="stat-card red"><div class="stat-label">Blocked IPs</div><div class="stat-value">{{stats.blocked_ips}}</div></div>
+      <div class="stat-card purple"><div class="stat-label">Critical Issues</div><div class="stat-value">{{issue_counts.critical}}</div></div>
     </div>
-    <div class="table-wrap">
-      <div class="table-header"><h3>Users</h3></div>
-      <table>
-        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Action</th></tr></thead>
-        <tbody>
-        {% for u in users %}
-        <tr>
-          <td>{{u.name}}</td>
-          <td style="color:var(--muted)">{{u.email}}</td>
-          <td><span class="badge badge-{{u.role}}">{{u.role}}</span></td>
-          <td style="font-size:.7rem;color:var(--muted)">{{u.created_at.strftime('%b %d, %Y')}}</td>
-          <td>
-            {% if u.id != current_user.id %}
-            <form method="POST" action="{{url_for('change_role', user_id=u.id)}}" style="display:inline">
-              <select name="role" onchange="this.form.submit()" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.7rem">
-                <option value="user" {% if u.role=='user' %}selected{% endif %}>User</option>
-                <option value="admin" {% if u.role=='admin' %}selected{% endif %}>Admin</option>
-              </select>
-            </form>
-            {% else %}<span style="font-size:.65rem;color:var(--muted)">You</span>{% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-      </table>
+
+    <div class="dash-grid" style="grid-template-columns:1fr 1fr;margin-top:16px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px">
+        <h3 style="font-size:.85rem;font-weight:700;margin-bottom:12px">Issue Distribution</h3>
+        <div class="chart-bar">
+          {% set max_issue = [issue_counts.critical, issue_counts.high, issue_counts.medium, issue_counts.low]|max %}
+          {% set colors = ['#ef4444','#f97316','#f59e0b','#22c55e'] %}
+          {% set labels = ['Critical','High','Medium','Low'] %}
+          {% set counts = [issue_counts.critical, issue_counts.high, issue_counts.medium, issue_counts.low] %}
+          {% for i in range(4) %}
+          <div class="chart-col">
+            <div class="chart-value" style="color:{{colors[i]}}">{{counts[i]}}</div>
+            <div class="chart-bar-fill" style="height:{% if max_issue > 0 %}{{(counts[i] / max_issue * 90)|int}}{% else %}4{% endif %}px;background:{{colors[i]}};min-height:4px"></div>
+            <div class="chart-label">{{labels[i]}}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px">
+        <h3 style="font-size:.85rem;font-weight:700;margin-bottom:12px">Score Distribution</h3>
+        <div class="chart-bar">
+          {% set max_score = [score_dist.excellent, score_dist.good, score_dist.fair, score_dist.poor, score_dist.critical]|max %}
+          {% set s_colors = ['#22c55e','#00d4ff','#f59e0b','#f97316','#ef4444'] %}
+          {% set s_labels = ['90+','75-89','50-74','25-49','0-24'] %}
+          {% set s_counts = [score_dist.excellent, score_dist.good, score_dist.fair, score_dist.poor, score_dist.critical] %}
+          {% for i in range(5) %}
+          <div class="chart-col">
+            <div class="chart-value" style="color:{{s_colors[i]}}">{{s_counts[i]}}</div>
+            <div class="chart-bar-fill" style="height:{% if max_score > 0 %}{{(s_counts[i] / max_score * 90)|int}}{% else %}4{% endif %}px;background:{{s_colors[i]}};min-height:4px"></div>
+            <div class="chart-label">{{s_labels[i]}}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
     </div>
-    <div class="table-wrap">
-      <div class="table-header"><h3>Audit Log</h3></div>
-      <table>
-        <thead><tr><th>User</th><th>Action</th><th>Target</th><th>IP</th><th>Time</th></tr></thead>
-        <tbody>
-        {% for a in audit %}
-        <tr>
-          <td>{{a.user.name if a.user else 'System'}}</td>
-          <td style="font-weight:600">{{a.action}}</td>
-          <td style="color:var(--muted)">{{a.target or '-'}}</td>
-          <td style="font-family:'JetBrains Mono',monospace;font-size:.7rem">{{a.ip_address or '-'}}</td>
-          <td style="font-size:.7rem;color:var(--muted)">{{a.created_at.strftime('%b %d %H:%M')}}</td>
-        </tr>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('domains')">Domains</button>
+      <button class="tab-btn" onclick="switchTab('users')">Users</button>
+      <button class="tab-btn" onclick="switchTab('scans')">Recent Scans</button>
+      <button class="tab-btn" onclick="switchTab('blocked')">Blocked IPs</button>
+      <button class="tab-btn" onclick="switchTab('audit')">Audit Log</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-domains">
+      <h3 style="font-size:.85rem;font-weight:700;margin-bottom:12px">Domain Analytics</h3>
+      {% if domain_stats %}
+        {% for d in domain_stats %}
+        <div class="domain-card">
+          <div class="domain-card-header">
+            <div>
+              <div class="domain-name">{{d.domain}}</div>
+              <div class="domain-meta">Scanned by {{d.user}} · {{d.scan_count}} scan{{'s' if d.scan_count != 1}} · {{d.url}}</div>
+            </div>
+            <div style="text-align:right">
+              <div class="score-pill" style="{% if d.avg_score >= 80 %}background:rgba(34,197,94,.15);color:var(--green){% elif d.avg_score >= 50 %}background:rgba(245,158,11,.15);color:var(--gold){% else %}background:rgba(239,68,68,.15);color:var(--red){% endif %}">{{d.avg_score}}%</div>
+              {% if d.last_scan %}<div class="domain-meta" style="margin-top:4px">{{d.last_scan.strftime('%b %d, %H:%M')}}</div>{% endif %}
+            </div>
+          </div>
+        </div>
         {% endfor %}
-        </tbody>
-      </table>
+      {% else %}
+        <div style="text-align:center;padding:30px;color:var(--muted);font-size:.8rem">No domains scanned yet.</div>
+      {% endif %}
+    </div>
+
+    <div class="tab-panel" id="tab-users">
+      <div class="table-wrap" style="margin-top:0">
+        <div class="table-header"><h3>User Analytics</h3></div>
+        <table>
+          <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Scans</th><th>Domains</th><th>Avg Score</th><th>Joined</th><th>Action</th></tr></thead>
+          <tbody>
+          {% for us in user_stats %}
+          <tr>
+            <td style="font-weight:600">{{us.user.name}}</td>
+            <td style="color:var(--muted);font-size:.75rem">{{us.user.email}}</td>
+            <td><span class="badge badge-{{us.user.role}}">{{us.user.role}}</span></td>
+            <td style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent)">{{us.scan_count}}</td>
+            <td style="font-family:'JetBrains Mono',monospace">{{us.website_count}}</td>
+            <td><span class="score-pill" style="{% if us.avg_score >= 80 %}background:rgba(34,197,94,.15);color:var(--green){% elif us.avg_score >= 50 %}background:rgba(245,158,11,.15);color:var(--gold){% else %}background:rgba(239,68,68,.15);color:var(--red){% endif %}">{{us.avg_score}}%</span></td>
+            <td style="font-size:.7rem;color:var(--muted)">{{us.user.created_at.strftime('%b %d, %Y')}}</td>
+            <td>
+              {% if us.user.id != current_user.id %}
+              <form method="POST" action="{{url_for('change_role', user_id=us.user.id)}}" style="display:inline">
+                <select name="role" onchange="this.form.submit()" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.7rem">
+                  <option value="user" {% if us.user.role=='user' %}selected{% endif %}>User</option>
+                  <option value="admin" {% if us.user.role=='admin' %}selected{% endif %}>Admin</option>
+                </select>
+              </form>
+              {% else %}<span style="font-size:.65rem;color:var(--muted)">You</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-scans">
+      <div class="table-wrap" style="margin-top:0">
+        <div class="table-header"><h3>Recent Scans (All Users)</h3></div>
+        <table>
+          <thead><tr><th>URL</th><th>User</th><th>Score</th><th>SSL</th><th>Status</th><th>Issues</th><th>Date</th></tr></thead>
+          <tbody>
+          {% for s in scans %}
+          <tr>
+            <td><a href="{{url_for('scan_detail', scan_id=s.id)}}">{{s.url[:40]}}</a></td>
+            <td style="font-size:.75rem;color:var(--muted)">{{s.user.name if s.user else 'Unknown'}}</td>
+            <td><span class="badge {% if s.score >= 80 %}badge-low{% elif s.score >= 50 %}badge-medium{% else %}badge-critical{% endif %}">{{s.score}}%</span></td>
+            <td>{% if s.ssl_valid %}<span style="color:var(--green)">✓</span>{% else %}<span style="color:var(--red)">✗</span>{% endif %}</td>
+            <td><span class="badge badge-info">{{s.status_code}}</span></td>
+            <td style="font-family:'JetBrains Mono',monospace">{{s.issues|length if s.issues else 0}}</td>
+            <td style="font-size:.7rem;color:var(--muted)">{{s.created_at.strftime('%b %d, %H:%M')}}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-blocked">
+      <div class="table-wrap" style="margin-top:0">
+        <div class="table-header"><h3>Blocked IPs</h3></div>
+        <table>
+          <thead><tr><th>IP Address</th><th>Reason</th><th>Blocked By</th><th>Firewall</th><th>Date</th></tr></thead>
+          <tbody>
+          {% for b in blocked %}
+          <tr>
+            <td style="font-family:'JetBrains Mono',monospace;font-weight:600">{{b.ip_address}}</td>
+            <td style="font-size:.75rem;color:var(--muted)">{{b.reason or '-'}}</td>
+            <td>{{b.blocker.name if b.blocker else 'Unknown'}}</td>
+            <td>{% if b.firewall_applied %}<span class="badge badge-low">Active</span>{% else %}<span class="badge badge-medium">DB Only</span>{% endif %}</td>
+            <td style="font-size:.7rem;color:var(--muted)">{{b.created_at.strftime('%b %d, %H:%M')}}</td>
+          </tr>
+          {% endfor %}
+          {% if not blocked %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No blocked IPs</td></tr>
+          {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-audit">
+      <div class="table-wrap" style="margin-top:0">
+        <div class="table-header"><h3>Audit Log</h3></div>
+        <table>
+          <thead><tr><th>User</th><th>Action</th><th>Target</th><th>Details</th><th>IP</th><th>Time</th></tr></thead>
+          <tbody>
+          {% for a in audit %}
+          <tr>
+            <td>{{a.user.name if a.user else 'System'}}</td>
+            <td><span class="badge {% if a.action == 'scan' %}badge-low{% elif a.action in ['ip_blocked','role_changed'] %}badge-high{% elif a.action == 'login' %}badge-info{% else %}badge-medium{% endif %}">{{a.action}}</span></td>
+            <td style="color:var(--muted);font-size:.75rem">{{a.target or '-'}}</td>
+            <td style="font-size:.7rem;color:var(--muted)">{{a.details or '-'}}</td>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:.7rem">{{a.ip_address or '-'}}</td>
+            <td style="font-size:.7rem;color:var(--muted)">{{a.created_at.strftime('%b %d %H:%M')}}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
+<script>
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
 {% endblock %}

@@ -277,16 +277,75 @@ def create_app():
             flash("Admin access required", "danger")
             return redirect(url_for("dashboard"))
         users = User.query.all()
-        all_scans = Scan.query.order_by(Scan.created_at.desc()).limit(20).all()
-        audit = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(30).all()
+        all_scans = Scan.query.order_by(Scan.created_at.desc()).limit(50).all()
+        audit = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(50).all()
         blocked = BlockedIP.query.filter_by(is_active=True).all()
-        stats = {
-            "total_users": len(users),
-            "total_scans": Scan.query.count(),
-            "total_websites": Website.query.count(),
-            "blocked_ips": len(blocked),
-        }
-        return render_template("admin.html", users=users, scans=all_scans, audit=audit, stats=stats)
+        all_websites = Website.query.all()
+        all_scans_full = Scan.query.all()
+
+        total_scans_count = len(all_scans_full)
+        total_users_count = len(users)
+        total_websites_count = len(all_websites)
+        total_blocked = len(blocked)
+
+        domain_stats = []
+        for w in all_websites:
+            w_scans = [s for s in all_scans_full if s.website_id == w.id]
+            if w_scans:
+                scores = [s.score for s in w_scans]
+                avg = round(sum(scores) / len(scores))
+            else:
+                avg = 0
+            domain_stats.append({
+                "domain": w.domain,
+                "url": w.url,
+                "scan_count": len(w_scans),
+                "avg_score": avg,
+                "status": w.status,
+                "user": w.user.name if w.user else "Unknown",
+                "last_scan": w_scans[0].created_at if w_scans else None,
+            })
+        domain_stats.sort(key=lambda x: x["scan_count"], reverse=True)
+
+        score_dist = {"excellent": 0, "good": 0, "fair": 0, "poor": 0, "critical": 0}
+        for s in all_scans_full:
+            if s.score >= 90: score_dist["excellent"] += 1
+            elif s.score >= 75: score_dist["good"] += 1
+            elif s.score >= 50: score_dist["fair"] += 1
+            elif s.score >= 25: score_dist["poor"] += 1
+            else: score_dist["critical"] += 1
+
+        all_issues = []
+        for s in all_scans_full:
+            try:
+                issues = json.loads(s.issues) if isinstance(s.issues, str) else (s.issues or [])
+                for issue in issues:
+                    all_issues.append(issue)
+            except Exception:
+                pass
+        issue_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+        for i in all_issues:
+            sev = i.get("severity", "low")
+            if sev in issue_counts:
+                issue_counts[sev] += 1
+
+        user_stats = []
+        for u in users:
+            u_scans = [s for s in all_scans_full if s.user_id == u.id]
+            u_websites = [w for w in all_websites if w.user_id == u.id]
+            user_stats.append({
+                "user": u,
+                "scan_count": len(u_scans),
+                "website_count": len(u_websites),
+                "avg_score": round(sum(s.score for s in u_scans) / len(u_scans)) if u_scans else 0,
+            })
+
+        return render_template("admin.html",
+            users=users, scans=all_scans, audit=audit, blocked=blocked,
+            stats={"total_users": total_users_count, "total_scans": total_scans_count,
+                   "total_websites": total_websites_count, "blocked_ips": total_blocked},
+            domain_stats=domain_stats, score_dist=score_dist, issue_counts=issue_counts,
+            user_stats=user_stats)
 
     @app.route("/admin/user/<int:user_id>/role", methods=["POST"])
     @login_required
